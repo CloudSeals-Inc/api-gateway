@@ -83,6 +83,13 @@ async def health():
     return {"status": overall, "services": statuses}
 
 
+# ─── Public Stats ──────────────────────────────────────────────────────────
+@router.get("/stats")
+async def get_stats():
+    """Platform stats for Home page (citizen count, report count)."""
+    return await proxy("get", f"{TOKEN_URL}/stats")
+
+
 # ─── Internal Helpers ──────────────────────────────────────────────────────
 def decode_base64_image(b64_string: str) -> bytes:
     """Robustly decode base64 image strings from browsers."""
