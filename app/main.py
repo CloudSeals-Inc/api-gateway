@@ -142,24 +142,27 @@ async def ai_analyze(payload: dict):
 @router.get("/reports")
 async def get_reports():
     """UI dashboard list."""
+    logger.info("[api-gateway] GET /api/reports → supervisor/workorder")
     resp = await proxy("get", f"{SUPERVISOR_URL}/workorder")
     return resp.get("work_orders", [])
 
 @router.post("/reports")
 async def create_report(payload: dict):
     """UI report submission."""
+    logger.info("[api-gateway] POST /api/reports — reporter=%s", payload.get('reporterPhone', 'anon'))
     img_b64 = payload.get("imageUrl")
     raw = decode_base64_image(img_b64) if img_b64 else None
     cls_result = await proxy("post", f"{CLASSIFICATION_URL}/classify",
         files={"image": ("report.jpg", raw, "image/jpeg")} if raw else None,
     )
+    logger.info("[api-gateway] Classification done — category=%s", cls_result.get('dominant_category'))
     return await proxy("post", f"{SUPERVISOR_URL}/workorder/create", json={
         "reporter_id": payload.get("reporterPhone", "anonymous"),
         "report_lat": payload.get("location_lat", 0.0) or 0.0,
         "report_lng": payload.get("location_lng", 0.0) or 0.0,
         "report_photo_hash": cls_result.get("image_hash", ""),
         "classification_result": cls_result,
-        "image_data": img_b64,  # store full base64 for before-photo display
+        "image_data": img_b64,
     })
 
 
@@ -236,10 +239,13 @@ async def categories():
 # ─── Auth (Registration & Login) ─────────────────────────────────────────
 @router.post("/auth/register")
 async def auth_register(payload: dict):
+    logger.info("[api-gateway] POST /api/auth/register — phone=%s role=%s",
+                payload.get('phone'), payload.get('role'))
     return await proxy_resp("post", f"{TOKEN_URL}/auth/register", json=payload)
 
 @router.post("/auth/login")
 async def auth_login(payload: dict):
+    logger.info("[api-gateway] POST /api/auth/login — phone=%s", payload.get('phone'))
     return await proxy_resp("post", f"{TOKEN_URL}/auth/login", json=payload)
 
 app.include_router(router)
