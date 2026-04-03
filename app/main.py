@@ -207,6 +207,15 @@ async def report_garbage(
 async def complete_pickup(payload: dict):
     return await proxy("post", f"{SUPERVISOR_URL}/workorder/verify", json=payload)
 
+@router.post("/reports/{work_order_id}/pickup")
+async def pickup_work_order(work_order_id: str, payload: dict):
+    """Collector completes a work order — simple close without GPS."""
+    return await proxy("post", f"{SUPERVISOR_URL}/workorder/complete", json={
+        "work_order_id": work_order_id,
+        "collector_id": payload.get("collector_id", "anonymous"),
+        "after_image_data": payload.get("afterImageUrl"),
+    })
+
 @router.get("/collector/{collector_id}/wallet")
 async def get_wallet(collector_id: str):
     return await proxy("get", f"{TOKEN_URL}/tokens/ledger/{collector_id}")
