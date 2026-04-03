@@ -86,8 +86,20 @@ async def health():
 # ─── Public Stats ──────────────────────────────────────────────────────────
 @router.get("/stats")
 async def get_stats():
-    """Platform stats for Home page (citizen count, report count)."""
-    return await proxy("get", f"{TOKEN_URL}/stats")
+    """Platform stats for Home page — merged from token-engine + supervisor."""
+    try:
+        token_stats = await proxy("get", f"{TOKEN_URL}/stats")
+    except Exception:
+        token_stats = {}
+    try:
+        sup_stats = await proxy("get", f"{SUPERVISOR_URL}/stats")
+    except Exception:
+        sup_stats = {}
+    return {
+        "user_count":      token_stats.get("user_count", 0),
+        "report_count":    sup_stats.get("report_count", 0),
+        "co2e_avoided_kg": sup_stats.get("co2e_avoided_kg", 0.0),
+    }
 
 
 # ─── Internal Helpers ──────────────────────────────────────────────────────
