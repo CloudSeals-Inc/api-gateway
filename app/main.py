@@ -143,10 +143,11 @@ async def create_report(payload: dict):
     )
     return await proxy("post", f"{SUPERVISOR_URL}/workorder/create", json={
         "reporter_id": payload.get("reporterPhone", "anonymous"),
-        "report_lat": 0.0,
-        "report_lng": 0.0,
+        "report_lat": payload.get("location_lat", 0.0) or 0.0,
+        "report_lng": payload.get("location_lng", 0.0) or 0.0,
         "report_photo_hash": cls_result.get("image_hash", ""),
         "classification_result": cls_result,
+        "image_data": img_b64,  # store full base64 for before-photo display
     })
 
 
