@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Default to common dev origins if not set
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8000,https://miba-ui-460918627115.europe-west1.run.app").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8000,https://miba-ui-460918627115.europe-west1.run.app,https://miba-mobile-460918627115.europe-west1.run.app").split(",")
 
 app = FastAPI(title="MIBA API Gateway", version="1.0.0")
 app.add_middleware(
