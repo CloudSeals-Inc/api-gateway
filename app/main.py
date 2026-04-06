@@ -133,9 +133,12 @@ async def ai_analyze(payload: dict):
         logger.error(f"AI Analyze: base64 decoding failed: {e} | start={img_b64[:50]}")
         raise HTTPException(400, "Invalid base64 image data")
 
-    return await proxy("post", f"{CLASSIFICATION_URL}/classify",
+    logger.info("AI Analyze: Sending to classification-api...")
+    res = await proxy("post", f"{CLASSIFICATION_URL}/classify",
         files={"image": ("upload.jpg", raw, "image/jpeg")},
     )
+    logger.info(f"AI Analyze Result: cats={res.get('categories_found')} | value={res.get('grand_total_value_inr')}")
+    return res
 
 
 # ─── Reports (Citizen) ────────────────────────────────────────────────────
