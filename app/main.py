@@ -140,10 +140,15 @@ async def ai_analyze(payload: dict):
 
 # ─── Reports (Citizen) ────────────────────────────────────────────────────
 @router.get("/reports")
-async def get_reports():
-    """UI dashboard list."""
-    logger.info("[api-gateway] GET /api/reports → supervisor/workorder")
-    resp = await proxy("get", f"{SUPERVISOR_URL}/workorder")
+async def get_reports(phone: Optional[str] = None, role: Optional[str] = None):
+    """UI dashboard list — filtered by reporter phone for citizen isolation."""
+    logger.info("[api-gateway] GET /api/reports — phone=%s role=%s", phone, role)
+    params = {}
+    if phone:
+        params["reporter_id"] = phone
+    if role:
+        params["role"] = role
+    resp = await proxy("get", f"{SUPERVISOR_URL}/workorder", params=params)
     return resp.get("work_orders", [])
 
 @router.post("/reports")
