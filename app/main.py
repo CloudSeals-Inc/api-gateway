@@ -33,6 +33,7 @@ router = APIRouter(prefix="/api")
 
 # Downstream service URLs
 CLASSIFICATION_URL = os.getenv("CLASSIFICATION_API_URL", "http://classification-api:8080")
+MIBA_BACKEND_URL   = os.getenv("MIBA_BACKEND_URL",      "https://miba-backend-460918627115.europe-west1.run.app")
 CARBON_URL         = os.getenv("CARBON_ENGINE_URL",      "http://carbon-engine:8080")
 TOKEN_URL          = os.getenv("TOKEN_ENGINE_URL",        "http://token-engine:8080")
 SUPERVISOR_URL     = os.getenv("SUPERVISOR_URL",          "http://supervisor:8080")
@@ -133,9 +134,9 @@ async def ai_analyze(payload: dict):
         logger.error(f"AI Analyze: base64 decoding failed: {e} | start={img_b64[:50]}")
         raise HTTPException(400, "Invalid base64 image data")
 
-    logger.info("AI Analyze: Sending to classification-api...")
-    res = await proxy("post", f"{CLASSIFICATION_URL}/classify",
-        files={"image": ("upload.jpg", raw, "image/jpeg")},
+    logger.info("AI Analyze: Sending to miba-backend...")
+    res = await proxy("post", f"{MIBA_BACKEND_URL}/api/ai/analyze/upload",
+        files={"file": ("upload.jpg", raw, "image/jpeg")},
     )
     logger.info(f"AI Analyze Result: cats={res.get('categories_found')} | value={res.get('grand_total_value_inr')}")
     return res
@@ -160,10 +161,17 @@ async def create_report(payload: dict):
     logger.info("[api-gateway] POST /api/reports — reporter=%s", payload.get('reporterPhone', 'anon'))
     img_b64 = payload.get("imageUrl")
     raw = decode_base64_image(img_b64) if img_b64 else None
-    cls_result = await proxy("post", f"{CLASSIFICATION_URL}/classify",
-        files={"image": ("report.jpg", raw, "image/jpeg")} if raw else None,
-    )
-    logger.info("[api-gateway] Classification done — category=%s", cls_result.get('dominant_category'))
+    
+    # ── AI Detection Step ─────────────────────────────────────────────────────
+    if raw:
+        logger.info("[api-gateway] Creating report: Analyzing image via miba-backend")
+        cls_result = await proxy("post", f"{MIBA_BACKEND_URL}/api/ai/analyze/upload",
+            files={"file": ("report.jpg", raw, "image/jpeg")},
+        )
+    else:
+        cls_result = {}
+
+    logger.info("[api-gateway] Classification done — category=%s", cls_result.get('category'))
     return await proxy("post", f"{SUPERVISOR_URL}/workorder/create", json={
         "reporter_id": payload.get("reporterPhone", "anonymous"),
         "report_lat": payload.get("location_lat", 0.0) or 0.0,
