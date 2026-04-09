@@ -51,11 +51,26 @@ async def _request(method: str, url: str, **kwargs) -> httpx.Response:
 async def proxy(method: str, url: str, **kwargs):
     """Proxy and return as dict (for internal logic)."""
     resp = await _request(method, url, **kwargs)
+    
+    if resp.status_code >= 400:
+        logger.error(f"Upstream error from {url} [{resp.status_code}]: {resp.text}")
+        raise HTTPException(502, detail={
+            "error": "Upstream service failure",
+            "url": url,
+            "status_code": resp.status_code,
+            "response": resp.text[:1000]
+        })
+
     try:
         return resp.json()
-    except Exception as e:
-        logger.error(f"Failed to parse JSON from {url}: {e} | Content={resp.text[:200]}")
-        raise HTTPException(502, f"Invalid JSON from upstream {url}")
+    except Exception:
+        logger.error(f"Invalid JSON from upstream {url} [{resp.status_code}]: {resp.text}")
+        raise HTTPException(502, detail={
+            "error": "Invalid JSON from upstream",
+            "url": url,
+            "status_code": resp.status_code,
+            "response": resp.text[:1000]
+        })
 
 async def proxy_resp(method: str, url: str, **kwargs):
     """Proxy and return a full Response object (for final output)."""
