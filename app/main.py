@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Default to common dev origins if not set
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8000,https://miba-ui-460918627115.europe-west1.run.app,https://miba-mobile-460918627115.europe-west1.run.app").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8000,https://miba-ui-340635219170.europe-west1.run.app,https://miba-mobile-340635219170.europe-west1.run.app").split(",")
 
 app = FastAPI(title="MIBA API Gateway", version="1.0.0")
 app.add_middleware(
@@ -33,7 +33,7 @@ router = APIRouter(prefix="/api")
 
 # Downstream service URLs
 CLASSIFICATION_URL = os.getenv("CLASSIFICATION_API_URL", "http://classification-api:8080")
-MIBA_BACKEND_URL   = os.getenv("MIBA_BACKEND_URL",      "https://miba-backend-460918627115.europe-west1.run.app")
+MIBA_BACKEND_URL   = os.getenv("MIBA_BACKEND_URL",      "https://miba-backend-340635219170.europe-west1.run.app")
 CARBON_URL         = os.getenv("CARBON_ENGINE_URL",      "http://carbon-engine:8080")
 TOKEN_URL          = os.getenv("TOKEN_ENGINE_URL",        "http://token-engine:8080")
 SUPERVISOR_URL     = os.getenv("SUPERVISOR_URL",          "http://supervisor:8080")
