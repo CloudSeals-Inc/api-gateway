@@ -38,11 +38,14 @@ CARBON_URL         = os.getenv("CARBON_ENGINE_URL",      "http://carbon-engine:8
 TOKEN_URL          = os.getenv("TOKEN_ENGINE_URL",        "http://token-engine:8080")
 SUPERVISOR_URL     = os.getenv("SUPERVISOR_URL",          "http://supervisor:8080")
 
-TIMEOUT = httpx.Timeout(60.0) # Longer timeout for AI
+TIMEOUT    = httpx.Timeout(60.0)   # default
+AI_TIMEOUT = httpx.Timeout(180.0)  # AI pipeline: YOLO cold-start + Vision + Gemini can take 2-3 min
 
 
 async def _request(method: str, url: str, **kwargs) -> httpx.Response:
-    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+    # Use extended timeout for AI endpoints
+    t = AI_TIMEOUT if "/ai/" in url or "/classify" in url else TIMEOUT
+    async with httpx.AsyncClient(timeout=t) as client:
         resp = await getattr(client, method)(url, **kwargs)
         if resp.status_code >= 400:
             logger.error(f"Error from upstream {url} [{resp.status_code}]: {resp.text[:500]}")
