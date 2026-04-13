@@ -175,19 +175,29 @@ async def get_reports(phone: Optional[str] = None, role: Optional[str] = None):
 
 @router.post("/reports")
 async def create_report(payload: dict):
-    """UI report submission."""
+    """UI report submission — stores in miba-backend (GCS + DB) and creates supervisor work order."""
     logger.info("[api-gateway] POST /api/reports — reporter=%s", payload.get('reporterPhone', 'anon'))
+
+    # ── Step 1: Save to miba-backend (handles GCS upload + AI detection + PostgreSQL) ──
+    try:
+        mb_result = await proxy("post", f"{MIBA_BACKEND_URL}/api/reports", json=payload)
+        logger.info("[api-gateway] miba-backend report saved — id=%s category=%s imageUrl=%s",
+                    mb_result.get('id'), mb_result.get('aiCategory'), mb_result.get('imageUrl'))
+    except Exception as e:
+        logger.error("[api-gateway] miba-backend save failed (non-fatal): %s", e)
+        mb_result = {}
+
+    # ── Step 2: Create supervisor work order ──────────────────────────────────────────
     img_b64 = payload.get("imageUrl")
     raw = decode_base64_image(img_b64) if img_b64 else None
-    
-    # ── AI Detection Step ─────────────────────────────────────────────────────
+    cls_result = {}
     if raw:
-        logger.info("[api-gateway] Creating report: Analyzing image via miba-backend")
-        cls_result = await proxy("post", f"{MIBA_BACKEND_URL}/api/ai/analyze/upload",
-            files={"file": ("report.jpg", raw, "image/jpeg")},
-        )
-    else:
-        cls_result = {}
+        try:
+            cls_result = await proxy("post", f"{MIBA_BACKEND_URL}/api/ai/analyze/upload",
+                files={"file": ("report.jpg", raw, "image/jpeg")},
+            )
+        except Exception as e:
+            logger.warning("[api-gateway] AI analyze failed (non-fatal): %s", e)
 
     logger.info("[api-gateway] Classification done — category=%s", cls_result.get('category'))
     return await proxy("post", f"{SUPERVISOR_URL}/workorder/create", json={
